@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archetype-descriptor
+        xmlns="https://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.1.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.1.0 https://maven.apache.org/xsd/archetype-descriptor-1.1.0.xsd"
+        name="icf-connector-archetype">
+
+    <requiredProperties>
+        <requiredProperty key="connectorName"/>
+    </requiredProperties>
+
+    <fileSets>
+        <fileSet packaged="true" filtered="true">
+            <directory>src/main/java</directory>
+            <includes>
+                <include>**/*.java</include>
+            </includes>
+        </fileSet>
+
+        <fileSet packaged="true" filtered="false">
+            <directory>src/main/resources</directory>
+            <includes>
+                <include>**/*.properties</include>
+            </includes>
+        </fileSet>
+
+        <fileSet packaged="false" filtered="true">
+            <directory>src/test/config</directory>
+            <includes>
+                <include>**/*.groovy</include>
+            </includes>
+        </fileSet>
+
+        <fileSet packaged="true" filtered="true">
+            <directory>src/test/java</directory>
+            <includes>
+                <include>**/*.java</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</archetype-descriptor>

@@ -1,0 +1,346 @@
+{
+  "displayName": "Cisco Duo",
+  "templateVersion": "1.0",
+  "id": "cisco-duo",
+  "connectorDisplayName": "Cisco Duo Connector",
+  "bundleVersion": "[1.5.20.22, 1.6.0.0)",
+  "bundleName": "org.forgerock.openicf.connectors.duo-connector",
+  "connectorName": "org.forgerock.openicf.connectors.duo.DuoConnector",
+  "templateType": "Enterprise",
+  "image": "duo.svg",
+  "dateUpdated": "08-04-2026",
+  "description": "Gestiona usuarios y grupos en Cisco Duo autenticando con Integration Key, Secret Key y Host.",
+  "supportUrl": "https://duo.com/docs",
+  "categories": ["Security", "MFA"],
+  "capabilities": {
+    "provisioning": {
+      "Create": true,
+      "Read": true,
+      "Update": true,
+      "Delete": true
+    }
+  },
+  "schema": {
+    "applicationDetails": [
+      [
+        {
+          "model": "coreOAuth2ClientConfig.clientName",
+          "label": "Name",
+          "description": "Human-readable name for your application. You can change the name later in the application settings.",
+          "type": "string",
+          "saveFormat": "array",
+          "validation": {
+            "required": true,
+            "alpha_dash_spaces": true,
+            "single_spaces": true
+          }
+        }
+      ],
+      [
+        {
+          "model": "advancedOAuth2ClientConfig.descriptions",
+          "label": "Description",
+          "description": "",
+          "type": "string",
+          "saveFormat": "array",
+          "autocomplete": "off"
+        }
+      ],
+      [
+        {
+          "model": "applicationManagedObject.owners",
+          "label": "Application Owners",
+          "customSlot": "application-owners",
+          "type": "multiselect",
+          "validation": {
+            "required": true
+          }
+        }
+      ],
+      [
+        {
+          "columns": 2,
+          "columnClass": "mb-3 pr-0 border-left border-top border-bottom",
+          "customSlot": "logo",
+          "model": "custom"
+        },
+        {
+          "columns": 10,
+          "columnClass": "mb-3 pt-3 pr-lg-3 border-right border-top border-bottom",
+          "label": "App Logo URI",
+          "description": "Application logo URI for use in user-facing UIs such as consent pages and application pages.",
+          "model": "advancedOAuth2ClientConfig.logoUri",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "model": "applicationManagedObject.authoritative",
+          "label": "Authoritative",
+          "description": "applications.createCatalogAppModal.authoritativeDescription",
+          "type": "boolean",
+          "default": false,
+          "isHtml": true
+        }
+      ]
+    ],
+    "provisioning": {
+      "defaultValues": {
+        "connectionTimeout": 30,
+        "maximumConnections": 10
+      }
+    }
+  },
+  "objectTypes": [
+    {
+      "id": "__ACCOUNT__",
+      "nativeType": "__ACCOUNT__",
+      "name": "User",
+      "managedResource": "user",
+      "properties": [
+        {
+          "nativeName": "__NAME__",
+          "name": "Username",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "realname",
+          "name": "Real Name",
+          "type": "string"
+        },
+        {
+          "nativeName": "email",
+          "name": "Email",
+          "type": "string"
+        },
+        {
+          "nativeName": "__ENABLE__",
+          "name": "Status",
+          "type": "boolean"
+        },
+        {
+          "nativeName": "notes",
+          "name": "Notes",
+          "type": "string"
+        },
+        {
+          "nativeName": "userType",
+          "name": "User Type",
+          "type": "string"
+        },
+        {
+          "nativeName": "alias1",
+          "name": "Alias 1",
+          "type": "string"
+        },
+        {
+          "nativeName": "alias2",
+          "name": "Alias 2",
+          "type": "string"
+        },
+        {
+          "nativeName": "alias3",
+          "name": "Alias 3",
+          "type": "string"
+        },
+        {
+          "nativeName": "alias4",
+          "name": "Alias 4",
+          "type": "string"
+        },
+        {
+          "nativeName": "phones",
+          "name": "Phones",
+          "multiValued": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "tokens",
+          "name": "Tokens",
+          "multiValued": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "__GROUPS__",
+          "name": "Groups",
+          "type": "string",
+          "multiValued": true,
+          "nonAccountObject": "Group",
+          "userSpecific": false,
+          "notReturnedByDefault": true
+        }
+      ],
+      "mappings": {
+        "provisioning": {
+          "properties": [
+            {
+              "source": "userName",
+              "target": "__NAME__"
+            },
+            {
+              "source": "givenName",
+              "target": "realname"
+            },
+            {
+              "source": "mail",
+              "target": "email"
+            },
+            {
+              "transform": "source.accountStatus === 'active' ? true : false;",
+              "target": "__ENABLE__"
+            }
+          ]
+        },
+        "recon": {
+          "correlationQuery": "var qry = {'_queryFilter': 'userName eq \"' + source.__NAME__ + '\"'}; qry",
+          "properties": [
+            {
+              "source": "__NAME__",
+              "target": "userName"
+            },
+            {
+              "source": "realname",
+              "target": "givenName"
+            },
+            {
+              "source": "email",
+              "target": "mail"
+            },
+            {
+              "target": "accountStatus",
+              "transform": "source.__ENABLE__ ? 'active' : 'inactive';"
+            }
+          ],
+          "nonAccountProperties": [
+            {
+              "source": "__GROUPS__",
+              "target": "assignments",
+              "referencedObjectType": "Group",
+              "referencedObjectField": "_id"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "__GROUP__",
+      "nativeType": "__GROUP__",
+      "name": "Group",
+      "managedResource": "assignment",
+      "properties": [
+        {
+          "nativeName": "__NAME__",
+          "name": "Display Name",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "members",
+          "name": "Members",
+          "multiValued": true,
+          "type": "object",
+          "nativeType": "object"
+        }
+      ],
+      "mappings": {
+        "recon": {
+          "nonAccountProperties": [
+            {
+              "default": "__RESOURCE__",
+              "target": "type"
+            },
+            {
+              "source": "",
+              "target": "description",
+              "transform": {
+                "type": "text/javascript",
+                "globals": {},
+                "source": "if ((typeof source.__NAME__ !== \"undefined\") && source.__NAME__ !== null) { source.__NAME__; } else { source._id; }"
+              }
+            },
+            {
+              "default": "__outbound_mapping_placeholder__",
+              "target": "mapping"
+            },
+            {
+              "source": "",
+              "target": "name",
+              "transform": {
+                "type": "text/javascript",
+                "globals": {},
+                "source": "if ((typeof source.__NAME__ !== \"undefined\") && source.__NAME__ !== null) { source.__NAME__; } else { source._id; }"
+              }
+            },
+            {
+              "target": "attributes",
+              "transform": {
+                "type": "text/javascript",
+                "globals": {},
+                "source": "[\n  {\n    \"name\": \"__GROUPS__\",\n    \"value\": [source]\n  }\n]"
+              },
+              "source": "_id"
+            }
+          ],
+          "targetQuery": {
+            "_queryFilter": "mapping eq \"__outbound_mapping_placeholder__\" and attributes[name eq \"__GROUPS__\"]"
+          }
+        }
+      }
+    }
+  ],
+  "connectorTemplate": {
+    "version": "1.5.20.35-SNAPSHOT",
+    "pagingType": "offset",
+    "rcsOnly": true,
+    "basic": [
+      [
+        {
+          "description": "API Hostname entregado por Cisco Duo (ej: api-XXXXXXXX.duosecurity.com)",
+          "label": "API Hostname",
+          "model": "host",
+          "type": "string",
+          "validation": { "required": true }
+        }
+      ],
+      [
+        {
+          "description": "Integration Key (ikey) obtenido en la Admin Console de Duo.",
+          "label": "Integration Key",
+          "model": "integrationKey",
+          "type": "string",
+          "validation": { "required": true }
+        }
+      ],
+      [
+        {
+          "autocomplete": "new-password",
+          "description": "Secret Key (skey) obtenido en la Admin Console de Duo.",
+          "label": "Secret Key",
+          "model": "secretKey",
+          "type": "password",
+          "validation": { "required": true }
+        }
+      ],
+      [
+        {
+          "description": "Tamaño máximo del pool de conexiones HTTP.",
+          "label": "Maximum Connections",
+          "model": "maximumConnections",
+          "type": "integer",
+          "validation": { "required": true }
+        }
+      ]
+    ],
+    "advanced": [
+      [
+        {
+          "description": "Tiempo de espera para la conexión HTTP en segundos.",
+          "label": "Connection Timeout",
+          "model": "connectionTimeout",
+          "type": "integer"
+        }
+      ]
+    ]
+  }
+}

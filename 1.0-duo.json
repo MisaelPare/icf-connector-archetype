@@ -1,0 +1,644 @@
+{
+  "displayName": "Duo",
+  "templateVersion": "2.4",
+  "id": "scim",
+  "connectorDisplayName": "Duo Connector",
+  "bundleVersion": "[1.5.20.22, 1.6.0.0)",
+  "bundleName": "org.forgerock.openicf.connectors.duo-connector",
+  "connectorName": "org.forgerock.openicf.connectors.duo.DuoConnector",
+  "templateType": "Enterprise",
+  "image": "scim.svg",
+  "dateUpdated": "07-15-2025",
+  "description": "The SCIM application is based on the Simple Cloud Identity Management (SCIM) protocol and lets you manage user and group accounts on any SCIM-compliant resource provider, such as Slack or Facebook.",
+  "supportUrl": "https://backstage.forgerock.com/docs/openicf/latest/connector-reference/scim.html",
+  "categories": ["Uncategorized"],
+  "capabilities": {
+    "provisioning": {
+      "Create": true,
+      "Read": true,
+      "Update": true,
+      "Delete": true
+    }
+  },
+  "schema": {
+    "applicationDetails": [
+      [
+        {
+          "model": "coreOAuth2ClientConfig.clientName",
+          "label": "Name",
+          "description": "Human-readable name for your application. You can change the name later in the application settings.",
+          "type": "string",
+          "saveFormat": "array",
+          "validation": {
+            "required": true,
+            "alpha_dash_spaces": true,
+            "single_spaces": true
+          }
+        }
+      ],
+      [
+        {
+          "model": "advancedOAuth2ClientConfig.descriptions",
+          "label": "Description",
+          "description": "",
+          "type": "string",
+          "saveFormat": "array",
+          "autocomplete": "off"
+        }
+      ],
+      [
+        {
+          "model": "applicationManagedObject.owners",
+          "label": "Application Owners",
+          "customSlot": "application-owners",
+          "type": "multiselect",
+          "validation": { "required": true }
+        }
+      ],
+      [
+        {
+          "columns": 2,
+          "columnClass": "mb-3 pr-0 border-left border-top border-bottom",
+          "customSlot": "logo",
+          "model": "custom"
+        },
+        {
+          "columns": 10,
+          "columnClass": "mb-3 pt-3 pr-lg-3 border-right border-top border-bottom",
+          "label": "App Logo URI",
+          "description": "Application logo URI for use in user-facing UIs such as consent pages and application pages.",
+          "model": "advancedOAuth2ClientConfig.logoUri",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "model": "applicationManagedObject.authoritative",
+          "label": "Authoritative",
+          "description": "applications.createCatalogAppModal.authoritativeDescription",
+          "type": "boolean",
+          "default": false,
+          "isHtml": true
+        }
+      ]
+    ],
+    "provisioning": {
+      "defaultValues": {
+        "authenticationMethod": "OAUTH",
+        "connectionTimeout": 30,
+        "maximumConnections": 10,
+        "SCIMVersion": 1,
+        "readSchema": true
+      }
+    }
+  },
+  "objectTypes": [
+    {
+      "id": "__ACCOUNT__",
+      "nativeType": "__ACCOUNT__",
+      "name": "User",
+      "managedResource": "user",
+      "properties": [
+        {
+          "nativeName": "notes",
+          "name": "Notes",
+          "type": "string"
+        },
+        {
+          "nativeName": "realname",
+          "name": "Real Name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "nativeName": "role",
+          "name": "Role",
+          "type": "string"
+        },
+        {
+          "nativeName": "last_login",
+          "name": "Last Login",
+          "type": "string"
+        },
+        {
+          "nativeName": "email",
+          "name": "Email",
+          "multiValued": true,
+          "type": "string",
+          "required": true
+        },
+        {
+          "nativeName": "phones",
+          "name": "Phone Numbers",
+          "multiValued": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "tokens",
+          "name": "Tokens",
+          "multiValued": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "userType",
+          "name": "User Type",
+          "type": "string"
+        },
+        {
+          "nativeName": "__ENABLE__",
+          "name": "Enable",
+          "type": "boolean"
+        },
+        {
+          "nativeName": "__GROUPS__",
+          "name": "Groups",
+          "multiValued": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "restricted_by_admin_units",
+          "name": "Restricted by admin units",
+          "type": "string"
+        }
+      ],
+      "mappings": {
+        "provisioning": {
+          "properties": [
+            {
+              "source": "_id",
+              "target": "_id"
+            },
+            {
+              "transform": "var nameObj = {'givenName':source.givenName,'familyName':source.sn}; nameObj;",
+              "target": "name"
+            },
+            {
+              "transform": "source.accountStatus === 'active' ? true : false;",
+              "target": "active"
+            },
+            {
+              "transform": "[{'value':source.mail,'primary':true}]",
+              "target": "emails",
+              "condition": {
+                "globals": {
+                  "mappingName": "__outbound_mapping_placeholder__"
+                },
+                "source": "function isDefinedAndNotNull(field) {\n    return typeof field !== 'undefined' && field !== null;\n}\n\nfunction overrideNotPresent() {\n\treturn isDefinedAndNotNull(object.effectiveAssignments)\n        ? !object.effectiveAssignments.reduce((result, effectiveAssignment) =>  \n                    isMatchingOverrideAssignment(effectiveAssignment) ? result.concat(effectiveAssignment.attributes) : result, [])\n                .some(attribute => attribute.name === 'emails')\n  \t    : true\n}\n\n\nfunction isMatchingOverrideAssignment(assignment) {\n    return assignment.mapping === mappingName\n        && (assignment.linkQualifiers ? assignment.linkQualifiers.includes(linkQualifier) : linkQualifier === 'default')\n        && (isDefinedAndNotNull(assignment.type) ? assignment.type  === '__OVERRIDE__' : false)\n        && isDefinedAndNotNull(assignment.attributes)\n}\n\nisDefinedAndNotNull(object.mail) && overrideNotPresent();\n",
+                "type": "text/javascript"
+              }
+            },
+            {
+              "transform": "[{'primary':true,'value':source.telephoneNumber}]",
+              "target": "phoneNumbers",
+              "condition": {
+                "globals": {
+                  "mappingName": "__outbound_mapping_placeholder__"
+                },
+                "source": "function isDefinedAndNotNull(field) {\n    return typeof field !== 'undefined' && field !== null;\n}\n\nfunction overrideNotPresent() {\n\treturn isDefinedAndNotNull(object.effectiveAssignments)\n        ? !object.effectiveAssignments.reduce((result, effectiveAssignment) =>  \n                    isMatchingOverrideAssignment(effectiveAssignment) ? result.concat(effectiveAssignment.attributes) : result, [])\n                .some(attribute => attribute.name === 'phoneNumbers')\n  \t    : true\n}\n\n\nfunction isMatchingOverrideAssignment(assignment) {\n    return assignment.mapping === mappingName\n        && (assignment.linkQualifiers ? assignment.linkQualifiers.includes(linkQualifier) : linkQualifier === 'default')\n        && (isDefinedAndNotNull(assignment.type) ? assignment.type  === '__OVERRIDE__' : false)\n        && isDefinedAndNotNull(assignment.attributes)\n}\n\nisDefinedAndNotNull(object.telephoneNumber) && overrideNotPresent();\n",
+                "type": "text/javascript"
+              }
+            },
+            {
+              "transform": "[ { 'country':source.country||null, 'locality':source.city||null, 'postalCode':source.postalCode||null, 'primary':true, 'region':source.stateProvince||null, 'streetAddress':source.postalAddress||null } ]",
+              "target": "addresses",
+              "condition": {
+                "globals": {
+                  "mappingName": "__outbound_mapping_placeholder__"
+                },
+                "source": "function isDefinedAndNotNull(field) {\n    return typeof field !== 'undefined' && field !== null;\n}\n\nfunction overrideNotPresent() {\n\treturn isDefinedAndNotNull(object.effectiveAssignments)\n        ? !object.effectiveAssignments.reduce((result, effectiveAssignment) =>  \n                    isMatchingOverrideAssignment(effectiveAssignment) ? result.concat(effectiveAssignment.attributes) : result, [])\n                .some(attribute => attribute.name === 'addresses')\n  \t    : true\n}\n\n\nfunction isMatchingOverrideAssignment(assignment) {\n    return assignment.mapping === mappingName\n        && (assignment.linkQualifiers ? assignment.linkQualifiers.includes(linkQualifier) : linkQualifier === 'default')\n        && (isDefinedAndNotNull(assignment.type) ? assignment.type  === '__OVERRIDE__' : false)\n        && isDefinedAndNotNull(assignment.attributes)\n}\n\noverrideNotPresent();\n",
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        "recon": {
+          "correlationQuery": "var qry = {'_queryFilter': 'userName eq \"' + source.userName + '\"'}; qry",
+          "properties": [
+            {
+              "source": "userName",
+              "target": "userName"
+            },
+            {
+              "transform": "source.name ? source.name.givenName : null;",
+              "target": "givenName"
+            },
+            {
+              "transform": "source.name ? source.name.familyName : null;",
+              "target": "sn"
+            },
+            {
+              "target": "accountStatus",
+              "transform": "source.active ? 'active' : 'inactive';"
+            },
+            {
+              "transform": "source.emails ? source.emails.filter((object) => object.primary).map((object) => object.value)[0] : null;",
+              "target": "mail"
+            },
+            {
+              "transform": "var phone = source.phoneNumbers ? source.phoneNumbers.filter((object) => object.type.match(/^work.*/)).sort((a, b) => !!b.primary - !!a.primary).map((object) => object.value)[0] : null;(!phone || phone.length === 0) ? null : phone;",
+              "target": "telephoneNumber"
+            },
+            {
+              "transform": "var strAddr = source.addresses ? source.addresses.filter((object) => object.type.match(/^work.*/)).sort((a, b) => !!b.primary - !!a.primary).map((object) => object.streetAddress)[0] : null;(!strAddr || strAddr.length === 0) ? null : strAddr;",
+              "target": "postalAddress"
+            },
+            {
+              "transform": "var city = source.addresses ? source.addresses.filter((object) => object.type.match(/^work.*/)).sort((a, b) => !!b.primary - !!a.primary).map((object) => object.locality)[0] : null;(!city || city.length === 0) ? null : city;",
+              "target": "city"
+            },
+            {
+              "transform": "var country = source.addresses ? source.addresses.filter((object) => object.type.match(/^work.*/))\n\t.sort((a, b) => !!b.primary - !!a.primary)\n\t.map((object) => object.country)[0] : null;\n(!country || country.length === 0) ? null : country;",
+              "target": "country"
+            },
+            {
+              "transform": "var zip = source.addresses ? source.addresses.filter((object) => object.type.match(/^work.*/)).sort((a, b) => !!b.primary - !!a.primary).map((object) => object.postalCode)[0] : null;(!zip || zip.length === 0) ? null : zip;",
+              "target": "postalCode"
+            },
+            {
+              "transform": "var state = source.addresses ? source.addresses.filter((object) => object.type.match(/^work.*/)).sort((a, b) => !!b.primary - !!a.primary).map((object) => object.region)[0] : null;(!state || state.length === 0) ? null : state;",
+              "target": "stateProvince"
+            }
+          ],
+          "nonAccountProperties": [
+            {
+              "source": "__groupMemberships__",
+              "target": "assignments",
+              "referencedObjectType": "Group",
+              "referencedObjectField": "_id"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "__GROUP__",
+      "nativeType": "__GROUP__",
+      "name": "Group",
+      "managedResource": "assignment",
+      "properties": [
+        {
+          "nativeName": "externalId",
+          "name": "External Id",
+          "type": "string"
+        },
+        {
+          "nativeName": "displayName",
+          "name": "Display Name",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "nativeName": "members",
+          "name": "Members",
+          "multiValued": true,
+          "type": "object",
+          "nativeType": "object"
+        }
+      ],
+      "mappings": {
+        "recon": {
+          "nonAccountProperties": [
+            {
+              "default": "__RESOURCE__",
+              "target": "type"
+            },
+            {
+              "source": "",
+              "target": "description",
+              "transform": {
+                "type": "text/javascript",
+                "globals": {},
+                "source": "if ((typeof source.displayName !== \"undefined\") && source.displayName !== null) {\n  source.displayName;\n} else {\n  source._id;\n}"
+              }
+            },
+            {
+              "default": "__outbound_mapping_placeholder__",
+              "target": "mapping"
+            },
+            {
+              "source": "",
+              "target": "name",
+              "transform": {
+                "type": "text/javascript",
+                "globals": {},
+                "source": "if ((typeof source.displayName !== \"undefined\") && source.displayName !== null) {\n  source.displayName;\n} else {\n  source._id;\n}"
+              }
+            },
+            {
+              "target": "attributes",
+              "transform": {
+                "type": "text/javascript",
+                "globals": {},
+                "source": "[\n  {\n    \"name\": \"__groupMemberships__\",\n    \"value\": [source]\n  }\n]"
+              },
+              "source": "_id"
+            },
+            {
+              "target": "_id",
+              "transform": {
+                "type": "text/javascript",
+                "globals": {
+                  "sourceObjectSet": "__source_object_set_placeholder__"
+                },
+                "source": "sourceObjectSet.concat(source)"
+              },
+              "source": "_id"
+            }
+          ],
+          "targetQuery": {
+            "_queryFilter": "mapping eq \"__outbound_mapping_placeholder__\" and attributes[name eq \"__groupMemberships__\"]"
+          }
+        }
+      }
+    }
+  ],
+  "connectorTemplate": {
+    "version": "1.5.20.35-SNAPSHOT",
+    "pagingType": "offset",
+    "rcsOnly": true,
+    "basic": [
+      [
+        {
+          "description": "The HTTP URL defining the root for the SCIM endpoint (https://myserver.com/service/scim)",
+          "label": "SCIM Endpoint",
+          "model": "SCIMEndpoint",
+          "type": "string",
+          "validation": { "required": true }
+        }
+      ],
+      [
+        {
+          "format": "buttons",
+          "label": "SCIM Protocol Version",
+          "model": "SCIMVersion",
+          "options": [
+            { "text": "1", "value": 1 },
+            { "text": "2", "value": 2 }
+          ],
+          "type": "radio"
+        }
+      ],
+      [
+        {
+          "description": "Defines which method is to be used to authenticate on the remote server.",
+          "hasValueDependentFields": true,
+          "label": "Authentication Method",
+          "model": "authenticationMethod",
+          "options": ["BASIC", "OAUTH", "TOKEN"],
+          "type": "select",
+          "validation": { "required": true }
+        }
+      ],
+      [
+        {
+          "customSlot": "hiddenField",
+          "displayOnly": true,
+          "value": "Use Basic Auth",
+          "model": "authenticationMethodBASIC",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "description": "The remote user.",
+          "label": "User",
+          "model": "user",
+          "show": "authenticationMethodBASIC",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "autocomplete": "new-password",
+          "description": "The remote password.",
+          "label": "Password",
+          "model": "password",
+          "show": "authenticationMethodBASIC",
+          "type": "password"
+        }
+      ],
+      [
+        {
+          "customSlot": "hiddenField",
+          "displayOnly": true,
+          "label": "Use OAuth2 Authentication",
+          "model": "authenticationMethodOAUTH",
+          "type": "boolean",
+          "value": true
+        }
+      ],
+      [
+        {
+          "description": "The endpoint where a new access token should be requested for OAuth2.",
+          "label": "Token Endpoint",
+          "model": "tokenEndpoint",
+          "show": "authenticationMethodOAUTH",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "description": "Secure client identifier for OAuth2.",
+          "label": "Client Id",
+          "model": "clientId",
+          "show": "authenticationMethodOAUTH",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "autocomplete": "new-password",
+          "description": "Secure client secret for OAuth2.",
+          "label": "Client Secret",
+          "model": "clientSecret",
+          "show": "authenticationMethodOAUTH",
+          "type": "password"
+        }
+      ],
+      [
+        {
+          "description": "The OAuth2 scope to use.",
+          "label": "Scope",
+          "model": "scope",
+          "show": "authenticationMethodOAUTH",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "description": "The OAuth2 grant type to use",
+          "label": "Grant Type",
+          "model": "grantType",
+          "options": ["client_credentials", "refresh_token"],
+          "show": "authenticationMethodOAUTH",
+          "type": "select"
+        }
+      ],
+      [
+        {
+          "autocomplete": "new-password",
+          "description": "Used by the refresh_token grant type",
+          "label": "Refresh Token",
+          "model": "refreshToken",
+          "show": "authenticationMethodOAUTH",
+          "type": "password"
+        }
+      ],
+      [
+        {
+          "customSlot": "hiddenField",
+          "dependsOnValue": "TOKEN",
+          "displayOnly": true,
+          "label": "Use Token Authentication",
+          "model": "authenticationMethodTOKEN",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "autocomplete": "new-password",
+          "description": "Static authentication token.",
+          "label": "Auth Token",
+          "model": "authToken",
+          "show": "authenticationMethodTOKEN",
+          "type": "password"
+        }
+      ],
+      [
+        {
+          "displayOnly": true,
+          "label": "Use TLS Mutual Authentication",
+          "model": "showTlsMutualAuth",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "description": "The certificate alias from the keystore.",
+          "label": "Client Certificate Alias",
+          "model": "clientCertAlias",
+          "show": "showTlsMutualAuth",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "autocomplete": "new-password",
+          "description": "If the client certificate (private key) password is different than the keystore password, set this to the client private key password.",
+          "label": "Client Certificate Password",
+          "model": "clientCertPassword",
+          "show": "showTlsMutualAuth",
+          "type": "password"
+        }
+      ],
+      [
+        {
+          "description": "The max size of the http connection pool.",
+          "label": "Maximum Connections",
+          "model": "maximumConnections",
+          "type": "integer",
+          "validation": { "required": true }
+        }
+      ]
+    ],
+    "advanced": [
+      [
+        {
+          "description": "Content compression is enabled by default. Set this property to true to disable it.",
+          "label": "Disable Http Compression",
+          "model": "disableHttpCompression",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "displayOnly": true,
+          "label": "Use an HTTP Proxy",
+          "model": "showProxy",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "columns": 9,
+          "label": "HTTP Proxy Hostname",
+          "model": "httpProxyHost",
+          "show": "showProxy",
+          "type": "string"
+        },
+        {
+          "columns": 3,
+          "label": "HTTP Proxy Port",
+          "model": "httpProxyPort",
+          "show": "showProxy",
+          "type": "integer"
+        }
+      ],
+      [
+        {
+          "label": "HTTP Proxy Username",
+          "model": "httpProxyUsername",
+          "show": "showProxy",
+          "type": "string"
+        }
+      ],
+      [
+        {
+          "autocomplete": "new-password",
+          "label": "HTTP Proxy Password",
+          "model": "httpProxyPassword",
+          "show": "showProxy",
+          "type": "password"
+        }
+      ],
+      [
+        {
+          "description": "Defines a timeout for the underlying http connection in seconds.",
+          "label": "Connection Timeout",
+          "model": "connectionTimeout",
+          "type": "integer"
+        }
+      ],
+      [
+        {
+          "description": "To be avoided in production.",
+          "displayOnly": true,
+          "label": "Debug/Test settings",
+          "model": "showDebug",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "label": "Accept Self Signed Certificates",
+          "model": "acceptSelfSignedCertificates",
+          "show": "showDebug",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "label": "Disable Host Name Verifier",
+          "model": "disableHostNameVerifier",
+          "show": "showDebug",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "label": "Read Schema",
+          "model": "readSchema",
+          "type": "boolean"
+        }
+      ],
+      [
+        {
+          "description": "When true, synchronization operations update only the modified properties on a target resource",
+          "label": "Exclude Unmodified",
+          "model": "excludeUnmodified",
+          "type": "boolean"
+        }
+      ]
+    ]
+  }
+}
